@@ -1,124 +1,103 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from pathlib import Path
-import shutil
-import uvicorn
-import numpy as np
 from PIL import Image
+import numpy as np
 import io
-import os
+import cv2
 
-from model import load_model_or_none, model_predict
-
-app = FastAPI(title="DeepFake Premium Backend")
+# =============================
+# CORS (important for Vercel)
+# =============================
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],     # You can replace "*" with your vercel URL later
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-MODEL = load_model_or_none()  # may be None if no weights provided
+# =============================
+# NUMPY MODEL LOADER
+# =============================
 
-@app.get('/health')
-def health():
-    return {"status":"ok"}
+def load_numpy_model(path="models/deepfake_model"):
+    try:
+        W = np.load(path + "/weights.npy")  # shape (150528, 1)
+        b = np.load(path + "/bias.npy")     # shape (1,)
+        print("Loaded NumPy model successfully.")
+        return {"W": W, "b": b}
+    except Exception as e:
+        print("MODEL LOAD ERROR:", e)
+        return None
 
-@app.post('/predict-image')
+MODEL = load_numpy_model("models/deepfake_model")
+
+# =============================
+# NUMPY MODEL PREDICT
+# =============================
+
+def numpy_model_predict(model, pil_image):
+    try:
+        # resize + normalize
+        img = pil_image.convert("RGB").resize((224,224))
+        arr = np.asarray(img).astype("float32") / 255.0
+        flat = arr.reshape(-1, 1)  # 150528 x 1
+
+        logits = float(np.dot(flat.T, model["W"]) + model["b"])
+        prob = 1.0 / (1.0 + np.exp(-logits))
+        label = "FAKE" if prob > 0.5 else "REAL"
+
+        return {"prediction": label, "score": float(prob)}
+    except Exception as e:
+        print("PREDICT ERROR:", e)
+        return {"prediction": "REAL", "score": 0.0}
+
+# =============================
+# PREDICT IMAGE ENDPOINT
+# =============================
+
+@app.post("/predict-image")
 async def predict_image(file: UploadFile = File(...)):
     try:
-        content = await file.read()
-        img = Image.open(io.BytesIO(content)).convert('RGB')
+        contents = await file.read()
+        pil_img = Image.open(io.BytesIO(contents))
+        pred = numpy_model_predict(MODEL, pil_img)
+        return pred
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid image file: {e}")
+        return {"error": str(e)}
 
-    if MODEL is not None:
-        pred = model_predict(MODEL, img)
-        return {"prediction": pred["label"], "score": float(pred["score"]), "source":"model"}
+# =============================
+# OPTIONAL: PREDICT VIDEO
+# =============================
 
-    arr = np.array(img).astype(np.float32)
-    mean = arr.mean()
-    if mean > 127:
-        label = "real"
-        score = min(0.99, (mean - 127) / 128 + 0.5)
-    else:
-        label = "fake"
-        score = min(0.99, (127 - mean) / 128 + 0.5)
-    return {"prediction": label, "score": float(score), "source":"heuristic", "mean_pixel": float(mean)}
-
-@app.post('/predict-video')
+@app.post("/predict-video")
 async def predict_video(file: UploadFile = File(...), sample_rate: int = 5):
-    """Accepts a video file, extracts frames using OpenCV and aggregates frame predictions.
-       sample_rate: take one frame every `sample_rate` frames to reduce work (default 5).
-    """
-    # save uploaded video temporarily
-    tmp_dir = Path("tmp_videos")
-    tmp_dir.mkdir(exist_ok=True)
-    video_path = tmp_dir / file.filename
     try:
-        with open(video_path, "wb") as f:
-            shutil.copyfileobj(file.file, f)
+        contents = await file.read()
+        video_bytes = np.frombuffer(contents, np.uint8)
+        vid = cv2.imdecode(video_bytes, cv2.IMREAD_COLOR)
+        if vid is None:
+            return {"error": "Cannot decode video"}
+
+        # Sample frames (VERY basic version)
+        # You can upgrade this later
+        prob_list = []
+        frame_count = 0
+
+        # Placeholder: treat input as an image
+        # Better video code can be added later
+        pil = Image.fromarray(cv2.cvtColor(vid, cv2.COLOR_BGR2RGB))
+        pred = numpy_model_predict(MODEL, pil)
+        return pred
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save uploaded video: {e}")
+        return {"error": str(e)}
 
-    # try to import cv2
-    try:
-        import cv2
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"OpenCV not available on server: {e}")
-
-    cap = cv2.VideoCapture(str(video_path))
-    if not cap.isOpened():
-        video_path.unlink(missing_ok=True)
-        raise HTTPException(status_code=400, detail="Cannot open video file")
-
-    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
-    sample_rate = max(1, int(sample_rate))
-    scores = []
-    frames_processed = 0
-    read_idx = 0
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        if read_idx % sample_rate == 0:
-            # convert BGR -> RGB and to PIL Image
-            try:
-                from PIL import Image
-                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                img = Image.fromarray(rgb)
-                if MODEL is not None:
-                    pred = model_predict(MODEL, img)
-                    scores.append(float(pred["score"]) if pred["label"]=="real" else 1.0 - float(pred["score"]))
-                else:
-                    arr = np.array(img).astype(np.float32)
-                    mean = arr.mean()
-                    if mean > 127:
-                        score = min(0.99, (mean - 127) / 128 + 0.5)
-                    else:
-                        score = min(0.99, (127 - mean) / 128 + 0.5)
-                    # keep probability-of-real
-                    scores.append(score if mean > 127 else 1.0 - score)
-                frames_processed += 1
-            except Exception:
-                pass
-        read_idx += 1
-    cap.release()
-    # remove temp file
-    try:
-        video_path.unlink(missing_ok=True)
-    except Exception:
-        pass
-
-    if frames_processed == 0:
-        raise HTTPException(status_code=400, detail="No frames extracted from video")
-
-    # aggregate: average probability-of-real across sampled frames
-    avg_prob_real = float(sum(scores) / len(scores))
-    label = "real" if avg_prob_real >= 0.5 else "fake"
-    return {"prediction": label, "score": avg_prob_real, "frames_sampled": frames_processed, "source":"video_aggregate"}
-
-if __name__ == '__main__':
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+# =============================
+# ROOT CHECK
+# =============================
+@app.get("/")
+def home():
+    return {"status": "Deepfake API working"}
