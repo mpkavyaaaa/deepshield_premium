@@ -5,3 +5,10 @@ pillow
 numpy
 opencv-python-headless
 gunicorn
+onnxruntime
+numpy
+Pillow
+opencv-python-headless
+numpy
+Pillow
+opencv-python-headless
