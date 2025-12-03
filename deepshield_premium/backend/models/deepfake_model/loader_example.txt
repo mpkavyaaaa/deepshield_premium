@@ -1,0 +1,17 @@
+# loader_example.py
+import numpy as np
+from PIL import Image
+
+def load_numpy_model(path='models/deepfake_model'):
+    W = np.load(path + '/weights.npy')  # shape (150528,1)
+    b = np.load(path + '/bias.npy')     # shape (1,)
+    return {'W': W, 'b': b}
+
+def numpy_model_predict(model, pil_image):
+    img = pil_image.convert('RGB').resize((224,224))
+    arr = np.asarray(img).astype('float32') / 255.0
+    flat = arr.reshape(-1, 1)  # (150528,1)
+    logits = float(np.dot(flat.T, model['W']) + model['b'])
+    prob = 1.0 / (1.0 + np.exp(-logits))
+    label = 'FAKE' if prob > 0.5 else 'REAL'
+    return {'prediction': label, 'score': float(prob)}
