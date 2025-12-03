@@ -1,0 +1,35 @@
+:root{
+  --bg:#0f1724;
+  --card:#0b1220;
+  --muted:#9aa4b2;
+  --accent:#6c8cff;
+  --glass: rgba(255,255,255,0.04);
+}
+*{box-sizing:border-box}
+body{font-family:'Inter',system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial; margin:0; background:linear-gradient(180deg,#071029 0%, #081829 100%); color:#e6eef8;}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:18px 36px;background:transparent;}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#3b82f6);box-shadow:0 6px 20px rgba(108,140,255,0.18)}
+.brand h1{margin:0;font-size:18px}
+.tag{margin:0;font-size:12px;color:var(--muted)}
+nav a{color:var(--muted);margin-left:18px;text-decoration:none}
+nav a.active{color:var(--accent);font-weight:600}
+.container{max-width:1100px;margin:28px auto;padding:0 20px}
+.hero{display:grid;grid-template-columns:1fr 420px;gap:28px;align-items:start}
+.hero-left h2{font-size:28px;margin:0 0 10px}
+.lead{color:var(--muted);margin:0 0 18px}
+.card.controls{background:var(--card);padding:14px;border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.6)}
+.mode{margin-right:12px}
+.uploader{display:flex;gap:10px;align-items:center;margin-top:12px}
+input[type=file]{background:var(--glass);border:1px solid rgba(255,255,255,0.04);padding:10px;border-radius:8px;color:var(--muted)}
+.btn{background:linear-gradient(90deg,var(--accent),#4f8bff);border:none;padding:10px 14px;border-radius:10px;color:white;cursor:pointer;box-shadow:0 10px 30px rgba(79,139,255,0.14)}
+.hero-right .preview{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));height:300px;border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.placeholder{opacity:0.6;color:var(--muted);text-align:center}
+.hidden{display:none}
+.result-card{background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:10px;margin-top:12px}
+.info{margin-top:28px;padding:20px;background:rgba(255,255,255,0.02);border-radius:12px}
+.footer{text-align:center;padding:18px;color:var(--muted);margin-top:28px}
+@media (max-width:900px){
+  .hero{grid-template-columns:1fr}
+  .hero-right{order:2}
+}

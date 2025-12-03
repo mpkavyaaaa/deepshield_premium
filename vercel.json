@@ -1,0 +1,9 @@
+{
+  "builds": [
+    {
+      "src": "deepshield_premium/frontend/package.json",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": []
+}

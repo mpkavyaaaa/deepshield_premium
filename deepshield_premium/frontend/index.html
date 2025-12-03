@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>DeepFake Detector — Premium</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="logo.svg" alt="logo" class="logo"/>
+      <div>
+        <h1>DeepShield</h1>
+        <p class="tag">DeepFake Detection • AI-powered • Enterprise-ready</p>
+      </div>
+    </div>
+    <nav>
+      <a href="#" class="active">Home</a>
+      <a href="#about">About</a>
+      <a href="#docs">Docs</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+  <main class="container">
+    <section class="hero">
+      <div class="hero-left">
+        <h2>Accurate DeepFake detection for images & videos</h2>
+        <p class="lead">Upload an image or a short video and get a trustworthy verdict powered by a CNN/RNN pipeline. This demo uses a heuristic or your model when provided.</p>
+        <div class="card controls">
+          <label class="mode">
+            <input type="radio" name="mode" value="image" checked> Image
+          </label>
+          <label class="mode">
+            <input type="radio" name="mode" value="video"> Video
+          </label>
+          <div class="uploader">
+            <input id="file-input" type="file" accept="image/*,video/*" />
+            <button id="upload-btn" class="btn">Upload & Analyze</button>
+          </div>
+        </div>
+        <div id="result" class="result-card hidden">
+          <h3>Result</h3>
+          <div id="result-content"></div>
+        </div>
+      </div>
+      <div class="hero-right">
+        <div class="preview" id="preview">
+          <img id="preview-img" src="" alt="" class="hidden"/>
+          <video id="preview-video" controls class="hidden"></video>
+          <div class="placeholder">
+            <p>Preview will appear here</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section id="about" class="info">
+      <h3>How it works</h3>
+      <p>We sample frames from uploaded videos and run a frame-level detector; results are aggregated for final verdict. Replace the heuristic by adding your trained model at <code>backend/models/model.h5</code>.</p>
+    </section>
+  </main>
+  <footer class="footer">
+    <p>© DeepShield • Built for demo & testing</p>
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>
