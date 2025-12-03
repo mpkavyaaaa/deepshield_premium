@@ -1,4 +1,4 @@
-const BACKEND = 'http://localhost:8000';
+const BACKEND = 'https://deepshield-premium.onrender.com';
 const uploadBtn = document.getElementById('upload-btn');
 const fileInput = document.getElementById('file-input');
 const resultCard = document.getElementById('result');
